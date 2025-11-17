@@ -6,7 +6,7 @@ let currentEmployee = null;
 let currentUser = null;
 
 // Put your deployed Apps Script web app URL here
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyoPm7iKFT8cwum4GS_VAu5ONH3G7sJ-y-Yb8zHfYw5-jdw-6aeEJQT_5Kbxg6ApQvp/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV37fGgfZdiPqdU6A_wKC4vkJtX3n7gFRTT6LVRpmZ7jPcP1DbyG0RTXKF-ou8GzlI/exec";
 
 // Helper for all API calls to Apps Script
 function callApi(apiData, onSuccess, onError) {
@@ -1985,4 +1985,5 @@ function searchEmployees() {
 function filterEmployees() {
     // Implementation for employee filtering
     console.log('Filter employees function called');
+
 }
