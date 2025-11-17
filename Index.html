@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeaveMaster - Admin</title>
+    <link rel="stylesheet" href="Styles.css">
+</head>
+<body>
+    <div id="adminLoginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="logo">📊 LeaveMaster</div>
+                <h1>Admin Portal</h1>
+                <p>Service Provider Access</p>
+            </div>
+            
+            <div id="adminLoginErrorMessage" class="error-message hidden"></div>
+            <div id="adminLoginLoading" class="loading hidden">Logging in...</div>
+            
+            <form id="adminLoginForm" class="login-form">
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" placeholder="Admin username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Admin password" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+            
+            <div class="login-footer">
+                <button class="btn-secondary" type="button" onclick="goToLandingPage()">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainAdminPortal" class="admin-portal hidden" aria-hidden="true">
+        <div class="admin-container">
+            <header class="admin-header">
+                <div class="header-left">
+                    <div class="logo">📊 LeaveMaster Admin</div>
+                </div>
+                <div class="header-right">
+                    <span id="adminWelcome">Welcome</span>
+                    <button class="btn-logout" type="button" onclick="adminLogout()">Logout</button>
+                </div>
+            </header>
+            
+            <nav class="admin-tabs" role="tablist">
+                <button class="admin-tab active" onclick="openAdminTab('Dashboard', this)" role="tab" aria-selected="true">📈 Dashboard</button>
+                <button class="admin-tab" onclick="openAdminTab('Activities', this)" role="tab">📋 Activities</button>
+                <button class="admin-tab" onclick="openAdminTab('Companies', this)" role="tab">🏢 Companies</button>
+                <button class="admin-tab" onclick="openAdminTab('Subscriptions', this)" role="tab">💳 Subs</button>
+                <button class="admin-tab" onclick="openAdminTab('Billing', this)" role="tab">💰 Billing</button>
+                <button class="admin-tab" onclick="openAdminTab('System', this)" role="tab">⚙️ System</button>
+            </nav>
+
+            <main class="admin-content">
+                <div id="Dashboard" class="admin-tab-content active">
+                    <div class="tab-header">
+                        <h2>Dashboard</h2>
+                        <button class="btn-refresh" type="button" onclick="loadAdminDashboard()" aria-label="Refresh dashboard">🔄</button>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🏢</div>
+                            <div class="stat-number" id="totalCompanies">0</div>
+                            <div class="stat-label">Companies</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-number" id="activeSubscriptions">0</div>
+                            <div class="stat-label">Active</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏳</div>
+                            <div class="stat-number" id="pendingRegistrations">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-number" id="monthlyRevenue">$0</div>
+                            <div class="stat-label">Revenue</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activities Section Added Back -->
+                    <div class="content-section">
+                        <h3>Recent Activities</h3>
+                        <div id="dashboardActivitiesList" class="table-container">
+                            <div class="loading">Loading recent activities...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="Activities" class="admin-tab-content">
+                    <div class="tab-header">
+                        <h2>Recent Activities</h2>
+                        <button class="btn-refresh" type="button" onclick="loadRecentActivities()" aria-label="Refresh activities">🔄</button>
+                    </div>
+                    
+                    <div class="content-section">
+                        <div id="recentActivitiesList" class="table-container">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="Companies" class="admin-tab-content">
+                    <div class="tab-header">
+                        <h2>Companies</h2>
+                        <div class="header-actions">
+                            <input type="text" id="companySearch" placeholder="Search..." class="search-input" aria-label="Search companies">
+                            <select id="companyStatusFilter" class="filter-select" aria-label="Company status filter">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="trial">Trial</option>
+                            </select>
+                            <button class="btn-refresh" type="button" onclick="loadCompaniesList()" aria-label="Refresh companies">🔄</button>
+                        </div>
+                    </div>
+                    
+                    <div id="companiesList" class="table-container">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+
+                <div id="Subscriptions" class="admin-tab-content">
+                    <div class="tab-header">
+                        <h2>Subscriptions</h2>
+                        <button class="btn-refresh" type="button" onclick="loadSubscriptionsData()" aria-label="Refresh subscriptions">🔄</button>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="starterSubscriptions">0</div>
+                            <div class="stat-label">Small Team</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="standardSubscriptions">0</div>
+                            <div class="stat-label">Business</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="proSubscriptions">0</div>
+                            <div class="stat-label">Enterprise</div>
+                        </div>
+                    </div>
+                    
+                    <div class="content-section">
+                        <h3>Active Subs</h3>
+                        <div id="subscriptionsList" class="table-container">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+<div id="Billing" class="admin-tab-content">
+    <div class="tab-header">
+        <h2>Billing</h2>
+        <div class="header-actions">
+            <button class="btn-primary" type="button" onclick="generateRevenueReport()">📊 Report</button>
+            <button class="btn-refresh" type="button" onclick="loadBillingData()" aria-label="Refresh billing">🔄</button>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-number" id="totalRevenue">$0</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-number" id="collectedRevenue">$0</div>
+            <div class="stat-label">Collected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-number" id="pendingAmount">$0</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-number" id="activeSubsCount">0</div>
+            <div class="stat-label">Active Subs</div>
+        </div>
+    </div>
+    
+    <div class="content-section">
+        <h3>Payments</h3>
+        <div id="paymentsList" class="table-container">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+</div>
+
+                <div id="System" class="admin-tab-content">
+                    <div class="tab-header">
+                        <h2>System</h2>
+                        <div class="header-actions">
+                            <button class="btn-primary" type="button" onclick="saveSystemSettings()">💾 Save</button>
+                            <button class="btn-secondary" type="button" onclick="sendTestEmail()">📧 Test</button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h4>Configuration</h4>
+                            <div class="form-group">
+                                <label for="trialPeriod">Trial Days</label>
+                                <input type="number" id="trialPeriod" value="14" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="maintenanceMode">Maintenance</label>
+                                <select id="maintenanceMode" class="form-select">
+                                    <option value="false">Off</option>
+                                    <option value="true">On</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-card">
+                            <h4>Email</h4>
+                            <div class="form-group">
+                                <label for="adminEmail">Admin Email</label>
+                                <input type="email" id="adminEmail" class="form-input">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-card">
+                            <h4>System Health</h4>
+                            <div id="systemHealth" class="health-status">
+                                <div class="loading">Checking...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Setup Company Modal -->
+    <div id="setupCompanyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Setup Company</h3>
+                <button class="modal-close" onclick="closeSetupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="setupCompanyInfo">
+                    <div class="info-group">
+                        <label>Company:</label>
+                        <span id="setupCompanyName">-</span>
+                    </div>
+                    <div class="info-group">
+                        <label>Admin Name:</label>
+                        <span id="setupAdminName">-</span>
+                    </div>
+                    <div class="info-group">
+                        <label>Admin Email:</label>
+                        <span id="setupAdminEmail">-</span>
+                    </div>
+                    <div class="info-group">
+                        <label>Username:</label>
+                        <span id="setupUsername">-</span>
+                    </div>
+                    <div class="info-group">
+                        <label>Password:</label>
+                        <span id="setupPassword">-</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="companyUrl">Company Portal URL:</label>
+                    <input type="url" id="companyUrl" class="form-input" 
+                           placeholder="https://yourcompany.leavemaster.com" required>
+                </div>
+                
+                <div id="setupModalMessage" class="hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeSetupModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="sendSetupEmail()">Send Setup Email</button>
+            </div>
+        </div>
+    </div>
+    <!-- Company Details Modal -->
+    <div id="companyDetailsModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Company Details</h3>
+                <button class="modal-close" onclick="closeCompanyDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="companyDetailsModalContent" class="loading">
+                    Loading company details...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="Main.js"></script>
+</body>
+</html>
