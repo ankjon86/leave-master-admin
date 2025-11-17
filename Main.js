@@ -1,14 +1,14 @@
 // Global debug mode
 const DEBUG = true;
 
-// Put your deployed Apps Script web app URL here
-const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV37fGgfZdiPqdU6A_wKC4vkJtX3n7gFRTT6LVRpmZ7jPcP1DbyG0RTXKF-ou8GzlI/exec";
+// Your Google Apps Script Web App URL
+const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
 function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
 }
 
-// Helper for all API calls to Apps Script
+// Helper for all API calls to Google Apps Script
 function callAdminApi(apiData, onSuccess, onError) {
     const form = new URLSearchParams();
     for (const key in apiData) {
@@ -37,7 +37,7 @@ function callAdminApi(apiData, onSuccess, onError) {
     });
 }
 
-// Replace all google.script.run calls with callAdminApi
+// Test server connection
 function testServerConnection() {
     log('Testing server connection...');
     
@@ -231,7 +231,7 @@ function activateCompany(companyId) {
         { 
             action: 'updateCompanyStatus',
             companyId: companyId,
-            status: 'active'
+            newStatus: 'active'
         },
         function(result) {
             if (result && result.success) {
@@ -258,7 +258,7 @@ function suspendCompany(companyId) {
         { 
             action: 'updateCompanyStatus',
             companyId: companyId,
-            status: 'suspended'
+            newStatus: 'suspended'
         },
         function(result) {
             if (result && result.success) {
@@ -341,7 +341,149 @@ function sendSetupEmail() {
     );
 }
 
-// ... Continue converting all other google.script.run calls in the same pattern
+function loadSubscriptionsData() {
+    log('Loading subscriptions data...');
+    showLoading('subscriptionsList');
+    
+    callAdminApi(
+        { action: 'getSubscriptionsData' },
+        function(result) {
+            if (result && result.success) {
+                log('✅ Subscriptions data loaded');
+                
+                // Update subscription stats
+                updateElementText('starterSubscriptions', result.stats?.smallTeam || 0);
+                updateElementText('standardSubscriptions', result.stats?.growingBusiness || 0);
+                updateElementText('proSubscriptions', result.stats?.enterprise || 0);
+                
+                // Display subscriptions
+                displaySubscriptionsList(result.subscriptions || []);
+            } else {
+                showError('subscriptionsList', result.error || 'Failed to load subscriptions');
+            }
+        },
+        function(error) {
+            showError('subscriptionsList', 'Failed to load subscriptions: ' + error.message);
+        }
+    );
+}
+
+function loadBillingData() {
+    log('Loading billing data...');
+    showLoading('paymentsList');
+    
+    callAdminApi(
+        { action: 'getPaymentsData' },
+        function(result) {
+            if (result && result.success) {
+                log('✅ Billing data loaded');
+                
+                // Update billing stats with amounts
+                updateElementText('totalRevenue', '$' + (result.stats?.totalRevenue || 0));
+                updateElementText('collectedRevenue', '$' + (result.stats?.collectedRevenue || 0));
+                updateElementText('pendingAmount', '$' + (result.stats?.pendingAmount || 0));
+                updateElementText('activeSubsCount', result.stats?.activeSubscriptions || 0);
+                
+                // Display payments
+                displayPaymentsList(result.payments || []);
+            } else {
+                showError('paymentsList', result.error || 'Failed to load billing data');
+            }
+        },
+        function(error) {
+            showError('paymentsList', 'Failed to load billing data: ' + error.message);
+        }
+    );
+}
+
+function generateRevenueReport() {
+    log('Generating revenue report...');
+    callAdminApi(
+        { action: 'generateRevenueReport' },
+        function(result) {
+            if (result && result.success) {
+                showSuccessMessage('Revenue report generated successfully!');
+                if (result.downloadUrl) {
+                    window.open(result.downloadUrl, '_blank');
+                }
+            } else {
+                showErrorMessage('Failed to generate report: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to generate report: ' + error.message);
+        }
+    );
+}
+
+function loadSystemSettings() {
+    log('Loading system settings...');
+    callAdminApi(
+        { action: 'getSystemSettings' },
+        function(result) {
+            if (result && result.success) {
+                // Populate system settings form
+                document.getElementById('trialPeriod').value = result.settings?.trialPeriod || 14;
+                document.getElementById('maintenanceMode').value = result.settings?.maintenanceMode ? 'true' : 'false';
+                document.getElementById('adminEmail').value = result.settings?.adminEmail || 'admin@leavemaster.com';
+                
+                document.getElementById('systemHealth').innerHTML = '<div class="success">System settings loaded successfully</div>';
+            } else {
+                showErrorMessage('Failed to load system settings: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to load system settings: ' + error.message);
+        }
+    );
+}
+
+function saveSystemSettings() {
+    log('Saving system settings...');
+    const trialPeriod = document.getElementById('trialPeriod').value;
+    const maintenanceMode = document.getElementById('maintenanceMode').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    
+    const settings = {
+        trialPeriod: parseInt(trialPeriod),
+        maintenanceMode: maintenanceMode === 'true',
+        adminEmail: adminEmail
+    };
+    
+    callAdminApi(
+        { 
+            action: 'saveSystemSettings',
+            settings: JSON.stringify(settings)
+        },
+        function(result) {
+            if (result && result.success) {
+                showSuccessMessage('System settings saved successfully!');
+            } else {
+                showErrorMessage('Failed to save settings: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to save settings: ' + error.message);
+        }
+    );
+}
+
+function sendTestEmail() {
+    log('Sending test email...');
+    callAdminApi(
+        { action: 'sendTestEmail' },
+        function(result) {
+            if (result && result.success) {
+                showSuccessMessage('Test email sent successfully!');
+            } else {
+                showErrorMessage('Failed to send test email: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to send test email: ' + error.message);
+        }
+    );
+}
 
 // Keep all the utility functions as they are
 function showAdminLoginLoading(show) {
