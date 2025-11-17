@@ -84,6 +84,25 @@ function handleAdminLogin(e) {
     );
 }
 
+// Test server connection
+function testServerConnection() {
+    log('Testing server connection...');
+    
+    callAdminApi(
+        { action: 'testConnection' },
+        function(result) {
+            if (result && result.success) {
+                log('✅ Server connection successful: ' + JSON.stringify(result));
+            } else {
+                log('❌ Server returned error: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            log('❌ Server connection failed: ' + error.message);
+        }
+    );
+}
+
 function loadAdminDashboard() {
     log('Loading dashboard stats...');
     
@@ -670,3 +689,4 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Login form event listener attached');
     }
 });
+
