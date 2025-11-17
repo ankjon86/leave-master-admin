@@ -1,0 +1,13 @@
+{
+  "name": "leave-management-system",
+  "version": "1.0.0",
+  "description": "Leave Management System",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build process needed for static site'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
