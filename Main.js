@@ -2,7 +2,7 @@
 const DEBUG = true;
 
 // Your Google Apps Script Web App URL
-const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV37fGgfZdiPqdU6A_wKC4vkJtX3n7gFRTT6LVRpmZ7jPcP1DbyG0RTXKF-ou8GzlI/exec";
 
 function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
@@ -10,15 +10,18 @@ function log(message) {
 
 // Helper for all API calls to Google Apps Script
 function callAdminApi(apiData, onSuccess, onError) {
-    const form = new URLSearchParams();
+    // Convert to URL-encoded form data
+    const formData = new URLSearchParams();
     for (const key in apiData) {
-        form.append(key, apiData[key]);
+        formData.append(key, apiData[key]);
     }
     
     fetch(ADMIN_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: form
+        headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
     })
     .then(response => {
         if (!response.ok) {
@@ -35,25 +38,6 @@ function callAdminApi(apiData, onSuccess, onError) {
         if (onError) onError(err);
         else showAdminError('Network error: ' + err);
     });
-}
-
-// Test server connection
-function testServerConnection() {
-    log('Testing server connection...');
-    
-    callAdminApi(
-        { action: 'testConnection' },
-        function(result) {
-            if (result && typeof result === 'object') {
-                log('✅ Server connection successful: ' + JSON.stringify(result));
-            } else {
-                log('❌ Server returned invalid response: ' + result);
-            }
-        },
-        function(error) {
-            log('❌ Server connection failed: ' + error.message);
-        }
-    );
 }
 
 function handleAdminLogin(e) {
