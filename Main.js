@@ -1168,4 +1168,47 @@ function updateGeneratedUrl() {
     }
 }
 
+function createCompanyFolder() {
+    const companyId = document.getElementById('setupCompanyModal').getAttribute('data-company-id');
+    const companyName = document.getElementById('setupCompanyName').textContent;
+    
+    if (!companyId) {
+        showModalMessage('Please select a company first', 'error');
+        return;
+    }
+    
+    log('Creating folder for company: ' + companyId);
+    
+    // Disable button and show loading
+    const createFolderBtn = document.getElementById('createFolderBtn');
+    const originalText = createFolderBtn.textContent;
+    createFolderBtn.textContent = 'Creating...';
+    createFolderBtn.disabled = true;
+    
+    callAdminApi(
+        {
+            action: 'createCompanyFolder',
+            companyId: companyId,
+            companyName: companyName
+        },
+        function(result) {
+            // Restore button
+            createFolderBtn.textContent = originalText;
+            createFolderBtn.disabled = false;
+            
+            if (result && result.success) {
+                showModalMessage('Company folder created successfully!', 'success');
+                log('✅ Company folder created: ' + result.folderUrl);
+            } else {
+                showModalMessage('Failed to create folder: ' + (result.error || 'Unknown error'), 'error');
+            }
+        },
+        function(error) {
+            // Restore button
+            createFolderBtn.textContent = originalText;
+            createFolderBtn.disabled = false;
+            showModalMessage('Failed to create folder: ' + error.message, 'error');
+        }
+    );
+}
 
