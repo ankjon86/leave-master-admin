@@ -2,7 +2,7 @@
 const DEBUG = true;
 
 // Your Google Apps Script Web App URL
-const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV37fGgfZdiPqdU6A_wKC4vkJtX3n7gFRTT6LVRpmZ7jPcP1DbyG0RTXKF-ou8GzlI/exec";
+const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3PDk6qqkI42B3OKlQFnkoabQir6SsbCD8PDDjQR8ubvCEgoAlvcMjouLVlYsSJyIT/exec";
 
 function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
@@ -685,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Login form event listener attached');
     }
 });
+
 
 
 
