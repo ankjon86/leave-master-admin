@@ -4,42 +4,23 @@ const DEBUG = true;
 // Your Google Apps Script Web App URL
 const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3PDk6qqkI42B3OKlQFnkoabQir6SsbCD8PDDjQR8ubvCEgoAlvcMjouLVlYsSJyIT/exec";
 
-// CORS Proxy URLs (free services)
-const CORS_PROXIES = [
-    'https://cors-anywhere.herokuapp.com/',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://corsproxy.io/?',
-    '' // Direct connection as last resort
-];
-
-let currentProxyIndex = 0;
-
 function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
 }
 
-// Smart API caller with multiple fallbacks
+// Simple API caller using the working pattern
 function callAdminApi(apiData, onSuccess, onError) {
-    const proxyUrl = CORS_PROXIES[currentProxyIndex];
-    const targetUrl = proxyUrl + ADMIN_SCRIPT_URL;
+    log(`Calling API: ${apiData.action}`);
     
-    log(`Attempting API call with proxy ${currentProxyIndex}: ${targetUrl}`);
-    
-    // Method 1: Try fetch with proxy first
-    fetchWithProxy(apiData, targetUrl, onSuccess, onError);
-}
-
-function fetchWithProxy(apiData, targetUrl, onSuccess, onError, attempt = 0) {
     const formData = new URLSearchParams();
     for (const key in apiData) {
         formData.append(key, apiData[key]);
     }
     
-    fetch(targetUrl, {
+    fetch(ADMIN_SCRIPT_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
         },
         body: formData
     })
@@ -50,108 +31,13 @@ function fetchWithProxy(apiData, targetUrl, onSuccess, onError, attempt = 0) {
         return response.json();
     })
     .then(data => {
-        log('✅ API call successful with proxy ' + currentProxyIndex);
+        log('✅ API call successful');
         if (onSuccess) onSuccess(data);
     })
     .catch(error => {
-        log(`❌ Proxy ${currentProxyIndex} failed: ${error.message}`);
-        
-        // Try next proxy
-        if (currentProxyIndex < CORS_PROXIES.length - 1) {
-            currentProxyIndex++;
-            const nextProxyUrl = CORS_PROXIES[currentProxyIndex] + ADMIN_SCRIPT_URL;
-            log(`Trying next proxy: ${currentProxyIndex}`);
-            setTimeout(() => {
-                fetchWithProxy(apiData, nextProxyUrl, onSuccess, onError, attempt + 1);
-            }, 500);
-        } else if (attempt === 0) {
-            // All proxies failed, try JSONP as last resort
-            log('All proxies failed, trying JSONP...');
-            tryJsonp(apiData, onSuccess, onError);
-        } else {
-            // Complete failure
-            log('❌ All connection methods failed');
-            if (onError) onError(error);
-            else showAdminError('Connection failed: ' + error.message);
-        }
-    });
-}
-
-// JSONP fallback method
-function tryJsonp(apiData, onSuccess, onError) {
-    const callbackName = 'jsonpCallback_' + Date.now();
-    
-    window[callbackName] = function(response) {
-        delete window[callbackName];
-        if (document.getElementById('jsonpScript')) {
-            document.getElementById('jsonpScript').remove();
-        }
-        
-        log('✅ JSONP call successful');
-        if (onSuccess) onSuccess(response);
-    };
-    
-    // Build URL with JSONP parameters
-    let url = ADMIN_SCRIPT_URL + '?';
-    const params = new URLSearchParams();
-    
-    for (const key in apiData) {
-        params.append(key, apiData[key]);
-    }
-    params.append('callback', callbackName);
-    
-    url += params.toString();
-    
-    const script = document.createElement('script');
-    script.id = 'jsonpScript';
-    script.src = url;
-    script.onerror = function(err) {
-        delete window[callbackName];
-        if (document.getElementById('jsonpScript')) {
-            document.getElementById('jsonpScript').remove();
-        }
-        log('❌ JSONP also failed');
-        if (onError) onError(new Error('All connection methods failed'));
-    };
-    
-    document.head.appendChild(script);
-    
-    // Set timeout for JSONP
-    setTimeout(() => {
-        if (window[callbackName]) {
-            delete window[callbackName];
-            if (document.getElementById('jsonpScript')) {
-                document.getElementById('jsonpScript').remove();
-            }
-            log('❌ JSONP timeout');
-            if (onError) onError(new Error('JSONP request timeout'));
-        }
-    }, 10000);
-}
-
-// Simple method for testing without expecting response
-function callAdminApiSimple(apiData, onSuccess, onError) {
-    const formData = new URLSearchParams();
-    for (const key in apiData) {
-        formData.append(key, apiData[key]);
-    }
-    
-    // Just try to send the data without expecting response
-    fetch(ADMIN_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formData
-    })
-    .then(() => {
-        log('✅ Request sent (no-cors mode)');
-        if (onSuccess) onSuccess({ success: true, message: 'Request sent' });
-    })
-    .catch(error => {
-        log('❌ Simple request failed: ' + error.message);
+        log('❌ API call failed: ' + error.message);
         if (onError) onError(error);
+        else showErrorMessage('Connection failed: ' + error.message);
     });
 }
 
@@ -194,7 +80,7 @@ function handleAdminLogin(e) {
         function(error) {
             log('❌ Login request failed: ' + error.message);
             showAdminLoginLoading(false);
-            showAdminLoginError('Connection error. Please check your internet connection.');
+            showAdminLoginError('Connection error. Please try again.');
         }
     );
 }
@@ -207,7 +93,7 @@ function testServerConnection() {
         { action: 'testConnection' },
         function(result) {
             if (result && result.success) {
-                log('✅ Server connection successful: ' + JSON.stringify(result));
+                log('✅ Server connection successful');
                 showTempMessage('✅ Connected to server', 'success');
             } else {
                 log('❌ Server returned error: ' + (result.error || 'Unknown error'));
@@ -217,18 +103,6 @@ function testServerConnection() {
         function(error) {
             log('❌ Server connection failed: ' + error.message);
             showTempMessage('❌ Connection failed', 'error');
-            
-            // Try simple method
-            callAdminApiSimple(
-                { action: 'testConnection' },
-                function() {
-                    log('✅ Simple connection successful');
-                    showTempMessage('⚠️ Limited connectivity', 'warning');
-                },
-                function() {
-                    log('❌ All connection methods failed');
-                }
-            );
         }
     );
 }
@@ -1066,6 +940,14 @@ function showError(containerId, message) {
     }
 }
 
+function showSuccessMessage(message) {
+    showTempMessage(message, 'success');
+}
+
+function showErrorMessage(message) {
+    showTempMessage(message, 'error');
+}
+
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     const div = document.createElement('div');
@@ -1232,32 +1114,4 @@ document.addEventListener('DOMContentLoaded', function() {
             e.target.classList.add('hidden');
         }
     });
-    
-    // Add connection status indicator
-    addConnectionStatus();
 });
-
-// Add connection status to UI
-function addConnectionStatus() {
-    const statusDiv = document.createElement('div');
-    statusDiv.id = 'connectionStatus';
-    statusDiv.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        z-index: 1000;
-        background: #f39c12;
-        color: white;
-    `;
-    statusDiv.textContent = 'Connecting...';
-    document.body.appendChild(statusDiv);
-    
-    // Update status based on connection tests
-    setTimeout(() => {
-        statusDiv.textContent = 'Online';
-        statusDiv.style.background = '#2ecc71';
-    }, 2000);
-}
