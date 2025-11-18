@@ -1115,3 +1115,158 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Add these functions to your existing Main.js
+
+// Auto-refresh data every 30 seconds when on dashboard
+function startAutoRefresh() {
+    setInterval(() => {
+        if (!document.getElementById('mainAdminPortal').classList.contains('hidden')) {
+            const activeTab = document.querySelector('.admin-tab-content.active');
+            if (activeTab && activeTab.id === 'Dashboard') {
+                loadAdminDashboard();
+            }
+        }
+    }, 30000); // Refresh every 30 seconds
+}
+
+// Export data functions
+function exportCompaniesToCSV() {
+    callAdminApi(
+        { action: 'getAllCompanies' },
+        function(result) {
+            if (result && result.success) {
+                const csvContent = convertToCSV(result.companies);
+                downloadCSV(csvContent, 'companies_export.csv');
+            } else {
+                showErrorMessage('Failed to export companies data');
+            }
+        },
+        function(error) {
+            showErrorMessage('Export failed: ' + error.message);
+        }
+    );
+}
+
+function exportPaymentsToCSV() {
+    callAdminApi(
+        { action: 'getPaymentsData' },
+        function(result) {
+            if (result && result.success) {
+                const csvContent = convertToCSV(result.payments);
+                downloadCSV(csvContent, 'payments_export.csv');
+            } else {
+                showErrorMessage('Failed to export payments data');
+            }
+        },
+        function(error) {
+            showErrorMessage('Export failed: ' + error.message);
+        }
+    );
+}
+
+function convertToCSV(data) {
+    if (!data || data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const csvRows = [headers.join(',')];
+    
+    for (const row of data) {
+        const values = headers.map(header => {
+            const value = row[header] || '';
+            return `"${String(value).replace(/"/g, '""')}"`;
+        });
+        csvRows.push(values.join(','));
+    }
+    
+    return csvRows.join('\n');
+}
+
+function downloadCSV(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Quick actions for companies table
+function setupQuickActions() {
+    // Add select all functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('select-all-companies')) {
+            const checkboxes = document.querySelectorAll('.company-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        }
+    });
+}
+
+// Bulk actions for companies
+function bulkActivateCompanies() {
+    const selectedCompanies = getSelectedCompanies();
+    if (selectedCompanies.length === 0) {
+        showErrorMessage('Please select at least one company');
+        return;
+    }
+    
+    if (!confirm(`Activate ${selectedCompanies.length} selected companies?`)) {
+        return;
+    }
+    
+    let processed = 0;
+    selectedCompanies.forEach(companyId => {
+        callAdminApi(
+            { 
+                action: 'updateCompanyStatus',
+                companyId: companyId,
+                newStatus: 'active'
+            },
+            function(result) {
+                processed++;
+                if (processed === selectedCompanies.length) {
+                    showSuccessMessage(`Successfully activated ${processed} companies`);
+                    loadCompaniesList();
+                }
+            },
+            function(error) {
+                processed++;
+                console.error(`Failed to activate company ${companyId}:`, error);
+            }
+        );
+    });
+}
+
+function getSelectedCompanies() {
+    const checkboxes = document.querySelectorAll('.company-checkbox:checked');
+    return Array.from(checkboxes).map(checkbox => checkbox.value);
+}
+
+// Enhanced search with debouncing
+function setupEnhancedSearch() {
+    const searchInput = document.getElementById('companySearch');
+    if (searchInput) {
+        let timeoutId;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                filterCompanies();
+            }, 300); // Wait 300ms after user stops typing
+        });
+    }
+}
+
+// Add to your existing DOMContentLoaded event listener:
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    
+    // Add these lines:
+    startAutoRefresh();
+    setupQuickActions();
+    setupEnhancedSearch();
+});
