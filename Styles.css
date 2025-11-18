@@ -594,3 +594,13 @@
     color: var(--warning-color);
     font-weight: 600;
 }
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.modal-footer .btn-primary {
+    flex: 1;
+    min-width: 120px;
+}
