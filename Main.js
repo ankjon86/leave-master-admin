@@ -321,7 +321,14 @@ function openSetupModal(companyId) {
                 document.getElementById('setupAdminEmail').textContent = company.adminEmail;
                 document.getElementById('setupUsername').textContent = company.username;
                 document.getElementById('setupPassword').textContent = company.password || 'changeme123';
-                document.getElementById('companyUrl').value = company.companyUrl || '';
+                
+                // Auto-generate and display Unique ID
+                const uniqueId = generateUniqueIdFromName(company.companyName);
+                document.getElementById('companyUniqueId').value = uniqueId;
+                
+                // Auto-generate and display URL
+                const companyUrl = `https://leavemaster.com/company/${uniqueId}`;
+                document.getElementById('generatedUrl').textContent = companyUrl;
                 
                 document.getElementById('setupCompanyModal').classList.remove('hidden');
                 document.getElementById('setupModalMessage').classList.add('hidden');
@@ -335,46 +342,77 @@ function openSetupModal(companyId) {
     );
 }
 
-function sendSetupEmail() {
-    const companyId = document.getElementById('setupCompanyModal').getAttribute('data-company-id');
-    const companyUrl = document.getElementById('companyUrl').value;
-    const companyName = document.getElementById('setupCompanyName').textContent;
-    const adminName = document.getElementById('setupAdminName').textContent;
-    const adminEmail = document.getElementById('setupAdminEmail').textContent;
-    const username = document.getElementById('setupUsername').textContent;
-    const password = document.getElementById('setupPassword').textContent;
+// Generate Unique ID from company name (frontend version)
+function generateUniqueIdFromName(companyName) {
+    // Simple frontend version - matches the backend logic
+    let cleanName = companyName.replace(/[^\w\s]/gi, '').trim().toLowerCase();
+    const words = cleanName.split(/\s+/);
     
-    if (!companyUrl) {
-        showModalMessage('Please enter the company portal URL', 'error');
+    if (words.length === 0) return 'company';
+    
+    let uniqueId = '';
+    
+    if (words.length === 1) {
+        uniqueId = words[0].substring(0, 8);
+    } else {
+        uniqueId = words[0];
+        for (let i = 1; i < words.length; i++) {
+            if (words[i].length > 0) {
+                uniqueId += words[i].charAt(0);
+            }
+        }
+        
+        if (uniqueId.length > 12) {
+            uniqueId = uniqueId.substring(0, 12);
+        }
+    }
+    
+    // Handle common suffixes
+    uniqueId = uniqueId
+        .replace(/limited$/g, 'ltd')
+        .replace(/incorporated$/g, 'inc')
+        .replace(/corporation$/g, 'corp')
+        .replace(/international$/g, 'intl')
+        .replace(/microfinance$/g, 'mf');
+    
+    return uniqueId;
+}
+function setupCompanyPortal() {
+    const companyId = document.getElementById('setupCompanyModal').getAttribute('data-company-id');
+    const uniqueId = document.getElementById('companyUniqueId').value.trim();
+    
+    if (!uniqueId) {
+        showModalMessage('Please enter a Unique ID', 'error');
         return;
     }
     
-    log('Sending setup email for: ' + companyId);
+    // Validate Unique ID format
+    if (!/^[a-z0-9]+$/.test(uniqueId)) {
+        showModalMessage('Unique ID must contain only lowercase letters and numbers', 'error');
+        return;
+    }
+    
+    log('Setting up company portal for: ' + companyId + ' with Unique ID: ' + uniqueId);
     
     callAdminApi(
         {
-            action: 'sendCompanySetupEmail',
+            action: 'setupCompanyPortal',
             companyId: companyId,
-            companyName: companyName,
-            adminName: adminName,
-            adminEmail: adminEmail,
-            username: username,
-            password: password,
-            companyUrl: companyUrl
+            uniqueId: uniqueId
         },
         function(result) {
             if (result && result.success) {
-                showModalMessage('Setup email sent successfully!', 'success');
+                showModalMessage('Company portal setup successfully!', 'success');
                 setTimeout(() => {
                     closeSetupModal();
                     loadCompaniesList();
                 }, 2000);
             } else {
-                showModalMessage('Failed to send setup email: ' + (result.error || 'Unknown error'), 'error');
+                showModalMessage('Failed to setup company portal: ' + (result.error || 'Unknown error'), 'error');
             }
         },
         function(error) {
-            showModalMessage('Failed to send setup email: ' + error.message, 'error');
+            showModalMessage('Failed to setup company portal: ' + error.message, 'error');
         }
     );
 }
@@ -1118,4 +1156,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
 
