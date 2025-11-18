@@ -1,80 +1,157 @@
-// [REPLACE Main.js completely with this version]
-
 // Global debug mode
 const DEBUG = true;
 
-// Your Google Apps Script Web App URL (must be deployed as "Anyone, even anonymous")
+// Your Google Apps Script Web App URL
 const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3PDk6qqkI42B3OKlQFnkoabQir6SsbCD8PDDjQR8ubvCEgoAlvcMjouLVlYsSJyIT/exec";
 
-// JSONP callback counter
-let jsonpCallbackId = 0;
+// CORS Proxy URLs (free services)
+const CORS_PROXIES = [
+    'https://cors-anywhere.herokuapp.com/',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://corsproxy.io/?',
+    '' // Direct connection as last resort
+];
+
+let currentProxyIndex = 0;
 
 function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
 }
 
-// JSONP API call function
+// Smart API caller with multiple fallbacks
 function callAdminApi(apiData, onSuccess, onError) {
-    const callbackName = 'jsonpCallback_' + jsonpCallbackId++;
+    const proxyUrl = CORS_PROXIES[currentProxyIndex];
+    const targetUrl = proxyUrl + ADMIN_SCRIPT_URL;
     
-    // Create the callback function
-    window[callbackName] = function(response) {
-        // Clean up
-        delete window[callbackName];
-        document.head.removeChild(script);
+    log(`Attempting API call with proxy ${currentProxyIndex}: ${targetUrl}`);
+    
+    // Method 1: Try fetch with proxy first
+    fetchWithProxy(apiData, targetUrl, onSuccess, onError);
+}
+
+function fetchWithProxy(apiData, targetUrl, onSuccess, onError, attempt = 0) {
+    const formData = new URLSearchParams();
+    for (const key in apiData) {
+        formData.append(key, apiData[key]);
+    }
+    
+    fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        log('✅ API call successful with proxy ' + currentProxyIndex);
+        if (onSuccess) onSuccess(data);
+    })
+    .catch(error => {
+        log(`❌ Proxy ${currentProxyIndex} failed: ${error.message}`);
         
-        console.log('Admin API Response:', response);
+        // Try next proxy
+        if (currentProxyIndex < CORS_PROXIES.length - 1) {
+            currentProxyIndex++;
+            const nextProxyUrl = CORS_PROXIES[currentProxyIndex] + ADMIN_SCRIPT_URL;
+            log(`Trying next proxy: ${currentProxyIndex}`);
+            setTimeout(() => {
+                fetchWithProxy(apiData, nextProxyUrl, onSuccess, onError, attempt + 1);
+            }, 500);
+        } else if (attempt === 0) {
+            // All proxies failed, try JSONP as last resort
+            log('All proxies failed, trying JSONP...');
+            tryJsonp(apiData, onSuccess, onError);
+        } else {
+            // Complete failure
+            log('❌ All connection methods failed');
+            if (onError) onError(error);
+            else showAdminError('Connection failed: ' + error.message);
+        }
+    });
+}
+
+// JSONP fallback method
+function tryJsonp(apiData, onSuccess, onError) {
+    const callbackName = 'jsonpCallback_' + Date.now();
+    
+    window[callbackName] = function(response) {
+        delete window[callbackName];
+        if (document.getElementById('jsonpScript')) {
+            document.getElementById('jsonpScript').remove();
+        }
+        
+        log('✅ JSONP call successful');
         if (onSuccess) onSuccess(response);
     };
     
-    // Build the URL with JSONP parameters
+    // Build URL with JSONP parameters
     let url = ADMIN_SCRIPT_URL + '?';
     const params = new URLSearchParams();
     
-    // Add all API data as parameters
     for (const key in apiData) {
         params.append(key, apiData[key]);
     }
-    
-    // Add callback parameter for JSONP
     params.append('callback', callbackName);
     
     url += params.toString();
     
-    // Create and inject script tag
     const script = document.createElement('script');
+    script.id = 'jsonpScript';
     script.src = url;
     script.onerror = function(err) {
         delete window[callbackName];
-        document.head.removeChild(script);
-        console.error('Admin API call failed:', err);
-        if (onError) onError(err);
-        else showAdminError('Network error: ' + err);
+        if (document.getElementById('jsonpScript')) {
+            document.getElementById('jsonpScript').remove();
+        }
+        log('❌ JSONP also failed');
+        if (onError) onError(new Error('All connection methods failed'));
     };
     
     document.head.appendChild(script);
+    
+    // Set timeout for JSONP
+    setTimeout(() => {
+        if (window[callbackName]) {
+            delete window[callbackName];
+            if (document.getElementById('jsonpScript')) {
+                document.getElementById('jsonpScript').remove();
+            }
+            log('❌ JSONP timeout');
+            if (onError) onError(new Error('JSONP request timeout'));
+        }
+    }, 10000);
 }
 
-// Alternative: Fetch with no-cors mode (limited)
-function callAdminApiFallback(apiData, onSuccess, onError) {
-    const form = new URLSearchParams();
+// Simple method for testing without expecting response
+function callAdminApiSimple(apiData, onSuccess, onError) {
+    const formData = new URLSearchParams();
     for (const key in apiData) {
-        form.append(key, apiData[key]);
+        formData.append(key, apiData[key]);
     }
     
+    // Just try to send the data without expecting response
     fetch(ADMIN_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // This won't allow reading response, but will send data
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: form
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
     })
     .then(() => {
-        // With no-cors, we can't read response, so assume success
-        if (onSuccess) onSuccess({ success: true, message: 'Request sent (no-cors mode)' });
+        log('✅ Request sent (no-cors mode)');
+        if (onSuccess) onSuccess({ success: true, message: 'Request sent' });
     })
-    .catch(err => {
-        console.error('Fallback API call failed:', err);
-        if (onError) onError(err);
+    .catch(error => {
+        log('❌ Simple request failed: ' + error.message);
+        if (onError) onError(error);
     });
 }
 
@@ -117,7 +194,7 @@ function handleAdminLogin(e) {
         function(error) {
             log('❌ Login request failed: ' + error.message);
             showAdminLoginLoading(false);
-            showAdminLoginError('Login error: ' + error.message);
+            showAdminLoginError('Connection error. Please check your internet connection.');
         }
     );
 }
@@ -131,19 +208,24 @@ function testServerConnection() {
         function(result) {
             if (result && result.success) {
                 log('✅ Server connection successful: ' + JSON.stringify(result));
+                showTempMessage('✅ Connected to server', 'success');
             } else {
                 log('❌ Server returned error: ' + (result.error || 'Unknown error'));
+                showTempMessage('⚠️ Server error', 'warning');
             }
         },
         function(error) {
             log('❌ Server connection failed: ' + error.message);
-            // Try fallback method
-            callAdminApiFallback(
+            showTempMessage('❌ Connection failed', 'error');
+            
+            // Try simple method
+            callAdminApiSimple(
                 { action: 'testConnection' },
-                function(fallbackResult) {
-                    log('✅ Fallback connection successful');
+                function() {
+                    log('✅ Simple connection successful');
+                    showTempMessage('⚠️ Limited connectivity', 'warning');
                 },
-                function(fallbackError) {
+                function() {
                     log('❌ All connection methods failed');
                 }
             );
@@ -151,9 +233,31 @@ function testServerConnection() {
     );
 }
 
-// [KEEP ALL THE EXISTING FUNCTIONS FROM THE PREVIOUS VERSION...]
-// loadAdminDashboard, loadRecentActivities, loadCompaniesList, etc.
-// All the display functions and utility functions remain the same
+// Temporary message display
+function showTempMessage(message, type) {
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? '#2ecc71' : type === 'warning' ? '#f39c12' : '#e74c3c'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        z-index: 10000;
+        font-weight: 500;
+        max-width: 300px;
+        text-align: center;
+    `;
+    document.body.appendChild(messageDiv);
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            document.body.removeChild(messageDiv);
+        }
+    }, 3000);
+}
 
 function loadAdminDashboard() {
     log('Loading dashboard stats...');
@@ -217,31 +321,13 @@ function loadRecentActivities() {
     callAdminApi(
         { action: 'getRecentActivities' },
         function(result) {
-            log('📋 Activities response received:', result);
-            
-            if (!result) {
-                showError('recentActivitiesList', 'Server returned empty response');
-                return;
-            }
-            
-            if (typeof result === 'object' && result.success === true) {
-                log('✅ Activities data valid, displaying activities');
-                
-                if (result.recentActivities && Array.isArray(result.recentActivities)) {
-                    displayRecentActivities(result.recentActivities);
-                } else {
-                    showError('recentActivitiesList', 'No recent activities data');
-                }
-                
-                showSuccessMessage('Activities loaded successfully!');
+            if (result && result.success) {
+                displayRecentActivities(result.recentActivities || []);
             } else {
-                const errorMsg = result.error || 'Failed to load activities';
-                log('❌ Activities returned error: ' + errorMsg);
-                showError('recentActivitiesList', errorMsg);
+                showError('recentActivitiesList', result.error || 'Failed to load activities');
             }
         },
         function(error) {
-            log('❌ Activities request failed: ' + error.message);
             showError('recentActivitiesList', 'Failed to load activities: ' + error.message);
         }
     );
@@ -255,7 +341,6 @@ function loadCompaniesList() {
         { action: 'getAllCompanies' },
         function(result) {
             if (result && result.success) {
-                log('✅ Companies data loaded: ' + (result.companies?.length || 0) + ' companies');
                 displayCompaniesList(result.companies || []);
                 setupCompaniesFilters();
             } else {
@@ -337,6 +422,37 @@ function viewCompanyDetails(companyId) {
                 document.getElementById('companyDetailsModal').classList.remove('hidden');
             } else {
                 showErrorMessage('Failed to load company details: ' + (result.error || 'Unknown error'));
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to load company details: ' + error.message);
+        }
+    );
+}
+
+function openSetupModal(companyId) {
+    log('Opening setup modal for: ' + companyId);
+    
+    callAdminApi(
+        { 
+            action: 'getCompanyDetails',
+            companyId: companyId
+        },
+        function(result) {
+            if (result && result.success) {
+                const company = result.company;
+                document.getElementById('setupCompanyModal').setAttribute('data-company-id', companyId);
+                document.getElementById('setupCompanyName').textContent = company.companyName;
+                document.getElementById('setupAdminName').textContent = company.adminName;
+                document.getElementById('setupAdminEmail').textContent = company.adminEmail;
+                document.getElementById('setupUsername').textContent = company.username;
+                document.getElementById('setupPassword').textContent = company.password || 'changeme123';
+                document.getElementById('companyUrl').value = company.companyUrl || '';
+                
+                document.getElementById('setupCompanyModal').classList.remove('hidden');
+                document.getElementById('setupModalMessage').classList.add('hidden');
+            } else {
+                showErrorMessage('Failed to load company details for setup');
             }
         },
         function(error) {
@@ -523,178 +639,7 @@ function sendTestEmail() {
     );
 }
 
-// Utility Functions
-function showAdminLoginLoading(show) {
-    const loading = document.getElementById('adminLoginLoading');
-    const error = document.getElementById('adminLoginErrorMessage');
-    
-    if (loading) {
-        loading.classList.toggle('hidden', !show);
-    }
-    if (error && show) {
-        error.classList.add('hidden');
-    }
-}
-
-function showAdminLoginError(message) {
-    const error = document.getElementById('adminLoginErrorMessage');
-    if (error) {
-        error.textContent = message;
-        error.classList.remove('hidden');
-    }
-}
-
-function updateElementText(elementId, text) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = text;
-    }
-}
-
-function showLoading(containerId) {
-    const container = document.getElementById(containerId);
-    if (container) {
-        container.innerHTML = '<div class="loading">Loading...</div>';
-    }
-}
-
-function showError(containerId, message) {
-    const container = document.getElementById(containerId);
-    if (container) {
-        container.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
-    }
-}
-
-function showSuccessMessage(message) {
-    const messageDiv = document.createElement('div');
-    messageDiv.textContent = message;
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #2ecc71;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 10000;
-        font-weight: 500;
-    `;
-    document.body.appendChild(messageDiv);
-    setTimeout(() => {
-        if (messageDiv.parentNode) {
-            document.body.removeChild(messageDiv);
-        }
-    }, 3000);
-}
-
-function showErrorMessage(message) {
-    const messageDiv = document.createElement('div');
-    messageDiv.textContent = message;
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #e74c3c;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 10000;
-        font-weight: 500;
-    `;
-    document.body.appendChild(messageDiv);
-    setTimeout(() => {
-        if (messageDiv.parentNode) {
-            document.body.removeChild(messageDiv);
-        }
-    }, 3000);
-}
-
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showAdminPortal() {
-    log('Switching to admin portal view');
-    const loginScreen = document.getElementById('adminLoginScreen');
-    const adminPortal = document.getElementById('mainAdminPortal');
-    
-    if (loginScreen) loginScreen.classList.add('hidden');
-    if (adminPortal) adminPortal.classList.remove('hidden');
-    
-    const adminUser = sessionStorage.getItem('adminUser');
-    if (adminUser) {
-        try {
-            const user = JSON.parse(adminUser);
-            const welcomeElement = document.getElementById('adminWelcome');
-            if (welcomeElement) {
-                welcomeElement.textContent = 'Welcome, ' + (user.name || user.username);
-            }
-        } catch (e) {
-            log('Error parsing user data: ' + e.message);
-        }
-    }
-}
-
-function adminLogout() {
-    log('Logging out user');
-    sessionStorage.removeItem('adminUser');
-    const loginScreen = document.getElementById('adminLoginScreen');
-    const adminPortal = document.getElementById('mainAdminPortal');
-    const loginForm = document.getElementById('adminLoginForm');
-    
-    if (loginScreen) loginScreen.classList.remove('hidden');
-    if (adminPortal) adminPortal.classList.add('hidden');
-    if (loginForm) loginForm.reset();
-}
-
-function openAdminTab(tabName, element) {
-    log('Opening tab: ' + tabName);
-    
-    const tabContents = document.querySelectorAll('.admin-tab-content');
-    tabContents.forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    const tabs = document.querySelectorAll('.admin-tab');
-    tabs.forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    const targetTab = document.getElementById(tabName);
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
-    
-    if (element) {
-        element.classList.add('active');
-    }
-    
-    switch(tabName) {
-        case 'Dashboard':
-            loadAdminDashboard();
-            break;
-        case 'Activities':
-            loadRecentActivities();
-            break;
-        case 'Companies':
-            loadCompaniesList();
-            break;
-        case 'Subscriptions':
-            loadSubscriptionsData();
-            break;
-        case 'Billing':
-            loadBillingData();
-            break;
-        case 'System':
-            loadSystemSettings();
-            break;
-    }
-}
-
-// Display Functions (Add these if missing)
+// Display Functions
 function displayDashboardActivities(activities) {
     const container = document.getElementById('dashboardActivitiesList');
     if (!container) return;
@@ -1025,37 +970,6 @@ function displayCompanyDetails(company) {
 }
 
 // Modal Management Functions
-function openSetupModal(companyId) {
-    log('Opening setup modal for: ' + companyId);
-    
-    callAdminApi(
-        { 
-            action: 'getCompanyDetails',
-            companyId: companyId
-        },
-        function(result) {
-            if (result && result.success) {
-                const company = result.company;
-                document.getElementById('setupCompanyModal').setAttribute('data-company-id', companyId);
-                document.getElementById('setupCompanyName').textContent = company.companyName;
-                document.getElementById('setupAdminName').textContent = company.adminName;
-                document.getElementById('setupAdminEmail').textContent = company.adminEmail;
-                document.getElementById('setupUsername').textContent = company.username;
-                document.getElementById('setupPassword').textContent = company.password || 'changeme123';
-                document.getElementById('companyUrl').value = company.companyUrl || '';
-                
-                document.getElementById('setupCompanyModal').classList.remove('hidden');
-                document.getElementById('setupModalMessage').classList.add('hidden');
-            } else {
-                showErrorMessage('Failed to load company details for setup');
-            }
-        },
-        function(error) {
-            showErrorMessage('Failed to load company details: ' + error.message);
-        }
-    );
-}
-
 function closeSetupModal() {
     document.getElementById('setupCompanyModal').classList.add('hidden');
     document.getElementById('setupModalMessage').classList.add('hidden');
@@ -1107,6 +1021,137 @@ function filterCompanies() {
 }
 
 // Utility Functions
+function showAdminLoginLoading(show) {
+    const loading = document.getElementById('adminLoginLoading');
+    const error = document.getElementById('adminLoginErrorMessage');
+    
+    if (loading) {
+        loading.classList.toggle('hidden', !show);
+    }
+    if (error && show) {
+        error.classList.add('hidden');
+    }
+}
+
+function showAdminLoginError(message) {
+    const error = document.getElementById('adminLoginErrorMessage');
+    if (error) {
+        error.textContent = message;
+        error.classList.remove('hidden');
+    }
+}
+
+function showAdminError(message) {
+    showErrorMessage(message);
+}
+
+function updateElementText(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = '<div class="loading">Loading...</div>';
+    }
+}
+
+function showError(containerId, message) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+    }
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showAdminPortal() {
+    log('Switching to admin portal view');
+    const loginScreen = document.getElementById('adminLoginScreen');
+    const adminPortal = document.getElementById('mainAdminPortal');
+    
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (adminPortal) adminPortal.classList.remove('hidden');
+    
+    const adminUser = sessionStorage.getItem('adminUser');
+    if (adminUser) {
+        try {
+            const user = JSON.parse(adminUser);
+            const welcomeElement = document.getElementById('adminWelcome');
+            if (welcomeElement) {
+                welcomeElement.textContent = 'Welcome, ' + (user.name || user.username);
+            }
+        } catch (e) {
+            log('Error parsing user data: ' + e.message);
+        }
+    }
+}
+
+function adminLogout() {
+    log('Logging out user');
+    sessionStorage.removeItem('adminUser');
+    const loginScreen = document.getElementById('adminLoginScreen');
+    const adminPortal = document.getElementById('mainAdminPortal');
+    const loginForm = document.getElementById('adminLoginForm');
+    
+    if (loginScreen) loginScreen.classList.remove('hidden');
+    if (adminPortal) adminPortal.classList.add('hidden');
+    if (loginForm) loginForm.reset();
+}
+
+function openAdminTab(tabName, element) {
+    log('Opening tab: ' + tabName);
+    
+    const tabContents = document.querySelectorAll('.admin-tab-content');
+    tabContents.forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    const tabs = document.querySelectorAll('.admin-tab');
+    tabs.forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    if (element) {
+        element.classList.add('active');
+    }
+    
+    switch(tabName) {
+        case 'Dashboard':
+            loadAdminDashboard();
+            break;
+        case 'Activities':
+            loadRecentActivities();
+            break;
+        case 'Companies':
+            loadCompaniesList();
+            break;
+        case 'Subscriptions':
+            loadSubscriptionsData();
+            break;
+        case 'Billing':
+            loadBillingData();
+            break;
+        case 'System':
+            loadSystemSettings();
+            break;
+    }
+}
+
+// Status utility functions
 function getStatusClass(status) {
     switch (status) {
         case 'active': return 'status-active';
@@ -1164,24 +1209,55 @@ function goToLandingPage() {
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     log('Admin Portal Initialized');
-    testServerConnection();
     
+    // Test connection but don't block initialization
+    setTimeout(testServerConnection, 1000);
+    
+    // Check existing login
     const adminUser = sessionStorage.getItem('adminUser');
     if (adminUser) {
         showAdminPortal();
         loadAdminDashboard();
     }
     
+    // Setup login form
     const loginForm = document.getElementById('adminLoginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleAdminLogin);
     }
     
+    // Setup global click handlers for modals
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
             e.target.classList.add('hidden');
         }
     });
+    
+    // Add connection status indicator
+    addConnectionStatus();
 });
 
-
+// Add connection status to UI
+function addConnectionStatus() {
+    const statusDiv = document.createElement('div');
+    statusDiv.id = 'connectionStatus';
+    statusDiv.style.cssText = `
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+        background: #f39c12;
+        color: white;
+    `;
+    statusDiv.textContent = 'Connecting...';
+    document.body.appendChild(statusDiv);
+    
+    // Update status based on connection tests
+    setTimeout(() => {
+        statusDiv.textContent = 'Online';
+        statusDiv.style.background = '#2ecc71';
+    }, 2000);
+}
