@@ -244,51 +244,61 @@
         </div>
     </div>
 
-    <!-- Setup Company Modal -->
-    <div id="setupCompanyModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Setup Company</h3>
-                <button class="modal-close" onclick="closeSetupModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="setupCompanyInfo">
-                    <div class="info-group">
-                        <label>Company:</label>
-                        <span id="setupCompanyName">-</span>
-                    </div>
-                    <div class="info-group">
-                        <label>Admin Name:</label>
-                        <span id="setupAdminName">-</span>
-                    </div>
-                    <div class="info-group">
-                        <label>Admin Email:</label>
-                        <span id="setupAdminEmail">-</span>
-                    </div>
-                    <div class="info-group">
-                        <label>Username:</label>
-                        <span id="setupUsername">-</span>
-                    </div>
-                    <div class="info-group">
-                        <label>Password:</label>
-                        <span id="setupPassword">-</span>
-                    </div>
+<!-- Updated Setup Company Modal -->
+<div id="setupCompanyModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Setup Company Portal</h3>
+            <button class="modal-close" onclick="closeSetupModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="setupCompanyInfo">
+                <div class="info-group">
+                    <label>Company:</label>
+                    <span id="setupCompanyName">-</span>
                 </div>
-                
-                <div class="form-group">
-                    <label for="companyUrl">Company Portal URL:</label>
-                    <input type="url" id="companyUrl" class="form-input" 
-                           placeholder="https://yourcompany.leavemaster.com" required>
+                <div class="info-group">
+                    <label>Admin Name:</label>
+                    <span id="setupAdminName">-</span>
                 </div>
-                
-                <div id="setupModalMessage" class="hidden"></div>
+                <div class="info-group">
+                    <label>Admin Email:</label>
+                    <span id="setupAdminEmail">-</span>
+                </div>
+                <div class="info-group">
+                    <label>Username:</label>
+                    <span id="setupUsername">-</span>
+                </div>
+                <div class="info-group">
+                    <label>Password:</label>
+                    <span id="setupPassword">-</span>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeSetupModal()">Cancel</button>
-                <button type="button" class="btn-primary" onclick="sendSetupEmail()">Send Setup Email</button>
+            
+            <div class="form-group">
+                <label for="companyUniqueId">Unique ID:</label>
+                <input type="text" id="companyUniqueId" class="form-input" 
+                       placeholder="e.g., gapmfltd" required 
+                       oninput="updateGeneratedUrl()">
+                <small>Lowercase letters and numbers only. This will be used in the company URL.</small>
             </div>
+            
+            <div class="form-group">
+                <label>Company Portal URL:</label>
+                <div class="generated-url" style="padding: 10px; background: #f8f9fa; border-radius: 4px; font-family: monospace;">
+                    https://leavemaster.com/company/<span id="generatedUrl">-</span>
+                </div>
+                <small>✅ Auto-generated from Unique ID</small>
+            </div>
+            
+            <div id="setupModalMessage" class="hidden"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeSetupModal()">Cancel</button>
+            <button type="button" class="btn-primary" onclick="setupCompanyPortal()">Setup Company Portal</button>
         </div>
     </div>
+</div>
     <!-- Company Details Modal -->
     <div id="companyDetailsModal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px;">
@@ -306,4 +316,5 @@
 
     <script src="Main.js"></script>
 </body>
+
 </html>
