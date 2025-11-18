@@ -685,6 +685,500 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Login form event listener attached');
     }
 });
+// [ADD TO Main.js - After existing code]
+
+// Display Functions
+function displayDashboardActivities(activities) {
+    const container = document.getElementById('dashboardActivitiesList');
+    if (!container) return;
+    
+    if (!activities || activities.length === 0) {
+        container.innerHTML = '<div class="loading">No recent activities</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Admin</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    activities.forEach(activity => {
+        const statusClass = getStatusClass(activity.status);
+        html += `
+            <tr>
+                <td>${escapeHtml(activity.companyName)}</td>
+                <td>${escapeHtml(activity.adminName)}</td>
+                <td>${escapeHtml(activity.plan)}</td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(activity.status)}</span></td>
+                <td>${escapeHtml(activity.date)}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function displayRecentActivities(activities) {
+    const container = document.getElementById('recentActivitiesList');
+    if (!container) return;
+    
+    if (!activities || activities.length === 0) {
+        container.innerHTML = '<div class="loading">No recent activities found</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Company</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    activities.forEach(activity => {
+        html += `
+            <tr>
+                <td>${escapeHtml(formatDisplayDate(activity.timestamp))}</td>
+                <td>${escapeHtml(activity.companyName)}</td>
+                <td>${escapeHtml(activity.action)}</td>
+                <td>${escapeHtml(activity.details)}</td>
+                <td>${escapeHtml(activity.user)}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function displayCompaniesList(companies) {
+    const container = document.getElementById('companiesList');
+    if (!container) return;
+    
+    if (!companies || companies.length === 0) {
+        container.innerHTML = '<div class="loading">No companies found</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Admin</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Employees</th>
+                    <th>Status</th>
+                    <th>URL</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    companies.forEach(company => {
+        const statusClass = getStatusClass(company.status);
+        const trialEnd = company.trialEnd ? new Date(company.trialEnd) : null;
+        const isTrialExpired = trialEnd && trialEnd < new Date();
+        
+        html += `
+            <tr class="${isTrialExpired ? 'status-row-warning' : ''}">
+                <td>
+                    <div class="company-info">
+                        <div class="company-name">${escapeHtml(company.companyName)}</div>
+                        <div class="company-id">${escapeHtml(company.companyId)}</div>
+                    </div>
+                </td>
+                <td>${escapeHtml(company.adminName)}</td>
+                <td>${escapeHtml(company.adminEmail)}</td>
+                <td>${escapeHtml(company.subscriptionPlan)}</td>
+                <td>${company.employeeCount}</td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(company.status)}</span></td>
+                <td>
+                    ${company.companyUrl ? 
+                        `<a href="${escapeHtml(company.companyUrl)}" target="_blank" class="btn-url">Open</a>` : 
+                        `<span class="no-url">Not set</span>`
+                    }
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(company.companyId)}')" title="View Details">👁️</button>
+                        ${company.status !== 'active' ? 
+                            `<button class="btn-activate" onclick="activateCompany('${escapeHtml(company.companyId)}')" title="Activate">✅</button>` : 
+                            `<button class="btn-suspend" onclick="suspendCompany('${escapeHtml(company.companyId)}')" title="Suspend">⏸️</button>`
+                        }
+                        <button class="btn-setup" onclick="openSetupModal('${escapeHtml(company.companyId)}')" title="Setup Email">📧</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function displaySubscriptionsList(subscriptions) {
+    const container = document.getElementById('subscriptionsList');
+    if (!container) return;
+    
+    if (!subscriptions || subscriptions.length === 0) {
+        container.innerHTML = '<div class="loading">No active subscriptions found</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Plan</th>
+                    <th>Monthly Price</th>
+                    <th>Employees</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    subscriptions.forEach(sub => {
+        const statusClass = getStatusClass(sub.status);
+        html += `
+            <tr>
+                <td>${escapeHtml(sub.companyName)}</td>
+                <td>${escapeHtml(sub.plan)}</td>
+                <td class="amount-cell">$${sub.monthlyPrice}</td>
+                <td>${sub.employeeCount}</td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(sub.status)}</span></td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function displayPaymentsList(payments) {
+    const container = document.getElementById('paymentsList');
+    if (!container) return;
+    
+    if (!payments || payments.length === 0) {
+        container.innerHTML = '<div class="loading">No payments found</div>';
+        return;
+    }
+    
+    let totalAmount = 0;
+    let paidAmount = 0;
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Company</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Payment Date</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    payments.forEach(payment => {
+        const statusClass = getPaymentStatusClass(payment.status);
+        totalAmount += payment.amount;
+        if (payment.status === 'paid' || payment.status === 'completed') {
+            paidAmount += payment.amount;
+        }
+        
+        html += `
+            <tr class="${getPaymentRowClass(payment.status)}">
+                <td>${escapeHtml(payment.invoiceId)}</td>
+                <td>
+                    <div class="company-info">
+                        <div class="company-name">${escapeHtml(payment.companyName)}</div>
+                        <div class="company-id">${escapeHtml(payment.companyId)}</div>
+                    </div>
+                </td>
+                <td>${escapeHtml(payment.plan)}</td>
+                <td class="amount-cell">$${payment.amount.toFixed(2)}</td>
+                <td>${escapeHtml(payment.paymentDate)}</td>
+                <td>${escapeHtml(payment.dueDate)}</td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(payment.status)}</span></td>
+                <td>${escapeHtml(payment.receiptNo)}</td>
+            </tr>
+        `;
+    });
+    
+    html += `</tbody>
+        <tfoot>
+            <tr class="table-summary">
+                <td colspan="3">Total: ${payments.length} payments</td>
+                <td class="amount-cell">$${totalAmount.toFixed(2)}</td>
+                <td colspan="2">Paid: $${paidAmount.toFixed(2)}</td>
+                <td colspan="2">Pending: $${(totalAmount - paidAmount).toFixed(2)}</td>
+            </tr>
+        </tfoot>
+    </table>`;
+    
+    container.innerHTML = html;
+}
+
+function displayCompanyDetails(company) {
+    const container = document.getElementById('companyDetailsModalContent');
+    if (!container) return;
+    
+    let html = `
+        <div class="company-details-grid">
+            <div class="detail-group">
+                <label>Company ID:</label>
+                <span>${escapeHtml(company.companyId)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Company Name:</label>
+                <span>${escapeHtml(company.companyName)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Admin Name:</label>
+                <span>${escapeHtml(company.adminName)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Admin Email:</label>
+                <span>${escapeHtml(company.adminEmail)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Phone:</label>
+                <span>${escapeHtml(company.phoneNumber || 'Not provided')}</span>
+            </div>
+            <div class="detail-group">
+                <label>Username:</label>
+                <span>${escapeHtml(company.username)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Subscription Plan:</label>
+                <span>${escapeHtml(company.subscriptionPlan)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Status:</label>
+                <span class="status-badge ${getStatusClass(company.status)}">${escapeHtml(company.status)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Employee Count:</label>
+                <span>${company.employeeCount}</span>
+            </div>
+            <div class="detail-group">
+                <label>Trial Start:</label>
+                <span>${escapeHtml(company.trialStart)}</span>
+            </div>
+            <div class="detail-group">
+                <label>Trial End:</label>
+                <span>${escapeHtml(company.trialEnd)}</span>
+            </div>
+            <div class="detail-group full-width">
+                <label>Company URL:</label>
+                <span>
+                    ${company.companyUrl ? 
+                        `<a href="${escapeHtml(company.companyUrl)}" target="_blank" class="company-url-link">${escapeHtml(company.companyUrl)}</a>` : 
+                        'Not set'
+                    }
+                </span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeCompanyDetailsModal()">Close</button>
+            ${!company.companyUrl ? 
+                `<button class="btn-primary" onclick="openSetupModal('${escapeHtml(company.companyId)}')">Setup Company</button>` : 
+                `<button class="btn-primary" onclick="openSetupModal('${escapeHtml(company.companyId)}')">Resend Setup</button>`
+            }
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Modal Management Functions
+function openSetupModal(companyId) {
+    log('Opening setup modal for: ' + companyId);
+    
+    // Get company details first
+    callAdminApi(
+        { 
+            action: 'getCompanyDetails',
+            companyId: companyId
+        },
+        function(result) {
+            if (result && result.success) {
+                const company = result.company;
+                document.getElementById('setupCompanyModal').setAttribute('data-company-id', companyId);
+                document.getElementById('setupCompanyName').textContent = company.companyName;
+                document.getElementById('setupAdminName').textContent = company.adminName;
+                document.getElementById('setupAdminEmail').textContent = company.adminEmail;
+                document.getElementById('setupUsername').textContent = company.username;
+                document.getElementById('setupPassword').textContent = company.password || 'changeme123';
+                document.getElementById('companyUrl').value = company.companyUrl || '';
+                
+                document.getElementById('setupCompanyModal').classList.remove('hidden');
+                document.getElementById('setupModalMessage').classList.add('hidden');
+            } else {
+                showErrorMessage('Failed to load company details for setup');
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to load company details: ' + error.message);
+        }
+    );
+}
+
+function closeSetupModal() {
+    document.getElementById('setupCompanyModal').classList.add('hidden');
+    document.getElementById('setupModalMessage').classList.add('hidden');
+}
+
+function closeCompanyDetailsModal() {
+    document.getElementById('companyDetailsModal').classList.add('hidden');
+}
+
+function showModalMessage(message, type) {
+    const messageDiv = document.getElementById('setupModalMessage');
+    if (messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        messageDiv.classList.remove('hidden');
+    }
+}
+
+// Search and Filter Functions
+function setupCompaniesFilters() {
+    const searchInput = document.getElementById('companySearch');
+    const statusFilter = document.getElementById('companyStatusFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterCompanies);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterCompanies);
+    }
+}
+
+function filterCompanies() {
+    const searchTerm = document.getElementById('companySearch').value.toLowerCase();
+    const statusFilter = document.getElementById('companyStatusFilter').value;
+    
+    const rows = document.querySelectorAll('#companiesList tbody tr');
+    
+    rows.forEach(row => {
+        const companyName = row.cells[0].querySelector('.company-name').textContent.toLowerCase();
+        const adminName = row.cells[1].textContent.toLowerCase();
+        const status = row.cells[5].querySelector('.status-badge').textContent.toLowerCase();
+        
+        const matchesSearch = companyName.includes(searchTerm) || adminName.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+    });
+}
+
+// Utility Functions
+function getStatusClass(status) {
+    switch (status) {
+        case 'active': return 'status-active';
+        case 'trial': return 'status-trial';
+        case 'suspended': return 'status-suspended';
+        default: return 'status-trial';
+    }
+}
+
+function getPaymentStatusClass(status) {
+    switch (status) {
+        case 'paid':
+        case 'completed':
+            return 'status-paid';
+        case 'pending':
+        case 'due':
+            return 'status-pending';
+        case 'overdue':
+        case 'failed':
+            return 'status-overdue';
+        case 'refunded':
+            return 'status-refunded';
+        default:
+            return 'status-pending';
+    }
+}
+
+function getPaymentRowClass(status) {
+    switch (status) {
+        case 'paid':
+        case 'completed':
+            return 'status-row-success';
+        case 'pending':
+        case 'due':
+            return 'status-row-warning';
+        default:
+            return '';
+    }
+}
+
+function formatDisplayDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function goToLandingPage() {
+    window.location.href = 'https://your-landing-page.com';
+}
+
+// Initialize when DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    log('Admin Portal Initialized');
+    testServerConnection();
+    
+    // Check existing login
+    const adminUser = sessionStorage.getItem('adminUser');
+    if (adminUser) {
+        showAdminPortal();
+        loadAdminDashboard();
+    }
+    
+    // Setup login form
+    const loginForm = document.getElementById('adminLoginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleAdminLogin);
+    }
+    
+    // Setup global click handlers for modals
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.add('hidden');
+        }
+    });
+});
 
 
 
