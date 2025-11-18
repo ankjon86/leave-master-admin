@@ -8,20 +8,17 @@ function log(message) {
     if (DEBUG) console.log('AdminPortal:', message);
 }
 
-// Helper for all API calls to Google Apps Script
+// Helper for all API calls to Apps Script (Admin Portal)
 function callAdminApi(apiData, onSuccess, onError) {
-    // Convert to URL-encoded form data
-    const formData = new URLSearchParams();
+    const form = new URLSearchParams();
     for (const key in apiData) {
-        formData.append(key, apiData[key]);
+        form.append(key, apiData[key]);
     }
     
     fetch(ADMIN_SCRIPT_URL, {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form
     })
     .then(response => {
         if (!response.ok) {
@@ -30,7 +27,7 @@ function callAdminApi(apiData, onSuccess, onError) {
         return response.json();
     })
     .then(data => {
-        console.log('Admin API Response:', data);
+        console.log('Admin API Response:', data); // Debug log
         if (onSuccess) onSuccess(data);
     })
     .catch(err => {
@@ -39,7 +36,6 @@ function callAdminApi(apiData, onSuccess, onError) {
         else showAdminError('Network error: ' + err);
     });
 }
-
 function handleAdminLogin(e) {
     e.preventDefault();
     log('Login form submitted');
@@ -689,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Login form event listener attached');
     }
 });
+
 
 
 
