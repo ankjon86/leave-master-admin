@@ -570,4 +570,27 @@
 .data-table th:nth-child(8),
 .data-table td:nth-child(8) {
     /* Company URL column - adjust if needed */
+
+}
+/* Add to your Styles.css */
+.data-table th:nth-child(3), /* Activity column header */
+.data-table td:nth-child(3) { /* Activity column cells */
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+/* Highlight different activity types */
+.activity-payment {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.activity-registration {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.activity-suspension {
+    color: var(--warning-color);
+    font-weight: 600;
 }
