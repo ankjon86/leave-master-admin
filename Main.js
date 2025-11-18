@@ -529,6 +529,7 @@ function displayDashboardActivities(activities) {
                 <tr>
                     <th>Company</th>
                     <th>Admin</th>
+                    <th>Activity</th>
                     <th>Plan</th>
                     <th>Status</th>
                     <th>Date</th>
@@ -543,6 +544,7 @@ function displayDashboardActivities(activities) {
             <tr>
                 <td>${escapeHtml(activity.companyName)}</td>
                 <td>${escapeHtml(activity.adminName)}</td>
+                <td><strong>${escapeHtml(activity.activity || 'Activity')}</strong></td>
                 <td>${escapeHtml(activity.plan)}</td>
                 <td><span class="status-badge ${statusClass}">${escapeHtml(activity.status)}</span></td>
                 <td>${escapeHtml(activity.date)}</td>
@@ -569,6 +571,7 @@ function displayRecentActivities(activities) {
                 <tr>
                     <th>Company</th>
                     <th>Admin</th>
+                    <th>Activity</th>
                     <th>Plan</th>
                     <th>Status</th>
                     <th>Date</th>
@@ -583,6 +586,7 @@ function displayRecentActivities(activities) {
             <tr>
                 <td>${escapeHtml(activity.companyName)}</td>
                 <td>${escapeHtml(activity.adminName)}</td>
+                <td><strong>${escapeHtml(activity.activity || 'Activity')}</strong></td>
                 <td>${escapeHtml(activity.plan)}</td>
                 <td><span class="status-badge ${statusClass}">${escapeHtml(activity.status)}</span></td>
                 <td>${escapeHtml(activity.date)}</td>
@@ -593,7 +597,6 @@ function displayRecentActivities(activities) {
     html += '</tbody></table>';
     container.innerHTML = html;
 }
-
 function displayCompaniesList(companies) {
     const container = document.getElementById('companiesList');
     if (!container) return;
@@ -1115,3 +1118,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
