@@ -1157,4 +1157,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function updateGeneratedUrl() {
+    const uniqueId = document.getElementById('companyUniqueId').value.trim();
+    const generatedUrl = document.getElementById('generatedUrl');
+    
+    if (uniqueId) {
+        generatedUrl.textContent = uniqueId;
+    } else {
+        generatedUrl.textContent = '-';
+    }
+}
+
 
