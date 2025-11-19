@@ -681,14 +681,7 @@ function displayCompaniesList(companies) {
                 <td>
                     <div class="action-buttons">
                         <button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(company.companyId)}')" title="View Details">👁️</button>
-                        ${company.status === 'pending' ? 
-                            `<button class="btn-setup" onclick="openSetupModal('${escapeHtml(company.companyId)}')" title="Setup & Approve">✅</button>` : 
-                            ''
-                        }
-                        ${company.status === 'active' && company.subscriptionPlan === 'Trial' ? 
-                            `<button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(company.companyId)}')" title="View Details">👁️</button>` : 
-                            ''
-                        }
+                        <button class="btn-setup" onclick="openSetupModal('${escapeHtml(company.companyId)}')" title="Setup Company">🚀</button>
                         ${company.status === 'active' && company.subscriptionPlan !== 'Trial' ? 
                             `<button class="btn-suspend" onclick="suspendCompany('${escapeHtml(company.companyId)}')" title="Suspend">⏸️</button>` : 
                             ''
@@ -1408,6 +1401,7 @@ function resendSetupEmail(companyId) {
         }
     );
 }
+
 
 
 
