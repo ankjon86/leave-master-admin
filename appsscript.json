@@ -1,15 +1,11 @@
 {
-  "timeZone": "America/New_York",
-  "dependencies": {
-  },
+  "timeZone": "Etc/UTC",
   "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8",
+  // IMPORTANT: include the Drive scope so the script can move files between drives/folders
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
-    "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/script.external_request",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/script.container.ui"
+    "https://www.googleapis.com/auth/script.scriptapp"
   ]
 }
