@@ -654,7 +654,6 @@ function displayCompaniesList(companies) {
                     <th>Plan</th>
                     <th>Employees</th>
                     <th>Status</th>
-                    <th>URL</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -680,19 +679,24 @@ function displayCompaniesList(companies) {
                 <td>${company.employeeCount}</td>
                 <td><span class="status-badge ${statusClass}">${escapeHtml(company.status)}</span></td>
                 <td>
-                    ${company.companyUrl ? 
-                        `<a href="${escapeHtml(company.companyUrl)}" target="_blank" class="btn-url">Open</a>` : 
-                        `<span class="no-url">Not set</span>`
-                    }
-                </td>
-                <td>
                     <div class="action-buttons">
                         <button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(company.companyId)}')" title="View Details">👁️</button>
-                        ${company.status !== 'active' ? 
-                            `<button class="btn-activate" onclick="activateCompany('${escapeHtml(company.companyId)}')" title="Activate">✅</button>` : 
-                            `<button class="btn-suspend" onclick="suspendCompany('${escapeHtml(company.companyId)}')" title="Suspend">⏸️</button>`
+                        ${company.status === 'pending' ? 
+                            `<button class="btn-setup" onclick="openSetupModal('${escapeHtml(company.companyId)}')" title="Setup & Approve">✅</button>` : 
+                            ''
                         }
-                        <button class="btn-setup" onclick="openSetupModal('${escapeHtml(company.companyId)}')" title="Setup Email">📧</button>
+                        ${company.status === 'active' && company.subscriptionPlan === 'Trial' ? 
+                            `<button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(company.companyId)}')" title="View Details">👁️</button>` : 
+                            ''
+                        }
+                        ${company.status === 'active' && company.subscriptionPlan !== 'Trial' ? 
+                            `<button class="btn-suspend" onclick="suspendCompany('${escapeHtml(company.companyId)}')" title="Suspend">⏸️</button>` : 
+                            ''
+                        }
+                        ${company.status === 'pending-payment' ? 
+                            `<button class="btn-activate" onclick="activateCompany('${escapeHtml(company.companyId)}')" title="Activate Paid Plan">💰</button>` : 
+                            ''
+                        }
                     </div>
                 </td>
             </tr>
@@ -702,7 +706,6 @@ function displayCompaniesList(companies) {
     html += '</tbody></table>';
     container.innerHTML = html;
 }
-
 function displaySubscriptionsList(subscriptions) {
     const container = document.getElementById('subscriptionsList');
     if (!container) return;
@@ -1062,6 +1065,9 @@ function openAdminTab(tabName, element) {
         case 'Companies':
             loadCompaniesList();
             break;
+        case 'Setups':
+            loadSetupsData();
+            break;
         case 'Subscriptions':
             loadSubscriptionsData();
             break;
@@ -1221,3 +1227,198 @@ function createCompanySpreadsheet() {
         }
     );
 }
+// Add new function to load setups data
+function loadSetupsData() {
+    log('Loading setups data...');
+    showLoading('setupsList');
+    
+    callAdminApi(
+        { action: 'getSetupsData' },
+        function(result) {
+            if (result && result.success) {
+                log('✅ Setups data loaded');
+                updateElementText('totalSetups', result.stats?.totalSetups || 0);
+                updateElementText('activeSetups', result.stats?.activeSetups || 0);
+                updateElementText('emailsSent', result.stats?.emailsSent || 0);
+                updateElementText('completedSetups', result.stats?.completedSetups || 0);
+                displaySetupsList(result.setups || []);
+                setupSetupsSearch();
+            } else {
+                showError('setupsList', result.error || 'Failed to load setups data');
+            }
+        },
+        function(error) {
+            showError('setupsList', 'Failed to load setups data: ' + error.message);
+        }
+    );
+}
+
+// Add new function to display setups list
+function displaySetupsList(setups) {
+    const container = document.getElementById('setupsList');
+    if (!container) return;
+    
+    if (!setups || setups.length === 0) {
+        container.innerHTML = '<div class="loading">No setup data found</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Admin</th>
+                    <th>Unique ID</th>
+                    <th>URL</th>
+                    <th>Sheet ID</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Setup Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    setups.forEach(setup => {
+        const statusClass = getStatusClass(setup.status);
+        const planClass = getPlanClass(setup.subscriptionPlan);
+        
+        html += `
+            <tr>
+                <td>
+                    <div class="company-info">
+                        <div class="company-name">${escapeHtml(setup.companyName)}</div>
+                        <div class="company-id">${escapeHtml(setup.companyId)}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="admin-info">
+                        <div class="admin-name">${escapeHtml(setup.adminName)}</div>
+                        <div class="admin-email">${escapeHtml(setup.adminEmail)}</div>
+                    </div>
+                </td>
+                <td><code>${escapeHtml(setup.uniqueId)}</code></td>
+                <td>
+                    ${setup.url ? 
+                        `<a href="${escapeHtml(setup.url)}" target="_blank" class="btn-url" title="Open Company Portal">🌐 Open</a>` : 
+                        `<span class="no-url">Not set</span>`
+                    }
+                </td>
+                <td>
+                    ${setup.sheetId ? 
+                        `<a href="https://docs.google.com/spreadsheets/d/${escapeHtml(setup.sheetId)}" target="_blank" class="btn-url" title="Open Spreadsheet">📊 Open</a>` : 
+                        `<span class="no-url">Not created</span>`
+                    }
+                </td>
+                <td><span class="plan-badge ${planClass}">${escapeHtml(setup.subscriptionPlan)}</span></td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(setup.status)}</span></td>
+                <td>${escapeHtml(setup.setupDate)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-view" onclick="viewCompanyDetails('${escapeHtml(setup.companyId)}')" title="View Company Details">👁️</button>
+                        ${setup.url ? 
+                            `<button class="btn-setup" onclick="resendSetupEmail('${escapeHtml(setup.companyId)}')" title="Resend Setup Email">📧</button>` : 
+                            `<button class="btn-setup" onclick="openSetupModal('${escapeHtml(setup.companyId)}')" title="Complete Setup">✅</button>`
+                        }
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Add new function for plan classification
+function getPlanClass(plan) {
+    switch (plan) {
+        case 'Trial': return 'plan-trial';
+        case 'Small Team': return 'plan-starter';
+        case 'Growing Business': return 'plan-standard';
+        case 'Enterprise': return 'plan-pro';
+        default: return 'plan-unknown';
+    }
+}
+
+// Add new function to setup search for setups
+function setupSetupsSearch() {
+    const searchInput = document.getElementById('setupsSearch');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterSetups);
+    }
+}
+
+// Add new function to filter setups
+function filterSetups() {
+    const searchTerm = document.getElementById('setupsSearch').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('#setupsList tbody tr');
+    
+    rows.forEach(row => {
+        const companyName = row.cells[0].querySelector('.company-name').textContent.toLowerCase();
+        const companyId = row.cells[0].querySelector('.company-id').textContent.toLowerCase();
+        const adminName = row.cells[1].querySelector('.admin-name').textContent.toLowerCase();
+        const uniqueId = row.cells[2].textContent.toLowerCase();
+        
+        const matchesSearch = companyName.includes(searchTerm) || 
+                            companyId.includes(searchTerm) || 
+                            adminName.includes(searchTerm) ||
+                            uniqueId.includes(searchTerm);
+        
+        row.style.display = matchesSearch ? '' : 'none';
+    });
+}
+
+// Add new function to resend setup email
+function resendSetupEmail(companyId) {
+    if (!confirm('Are you sure you want to resend the setup email?')) {
+        return;
+    }
+    
+    log('Resending setup email for: ' + companyId);
+    
+    callAdminApi(
+        { 
+            action: 'getCompanyDetails',
+            companyId: companyId
+        },
+        function(result) {
+            if (result && result.success) {
+                const company = result.company;
+                
+                callAdminApi(
+                    {
+                        action: 'sendCompanySetupEmail',
+                        companyId: companyId,
+                        companyName: company.companyName,
+                        adminName: company.adminName,
+                        adminEmail: company.adminEmail,
+                        username: company.username,
+                        password: company.password,
+                        companyUrl: company.companyUrl
+                    },
+                    function(emailResult) {
+                        if (emailResult && emailResult.success) {
+                            showSuccessMessage('Setup email resent successfully!');
+                        } else {
+                            showErrorMessage('Failed to resend setup email: ' + (emailResult.error || 'Unknown error'));
+                        }
+                    },
+                    function(error) {
+                        showErrorMessage('Failed to resend setup email: ' + error.message);
+                    }
+                );
+            } else {
+                showErrorMessage('Failed to load company details for email resend');
+            }
+        },
+        function(error) {
+            showErrorMessage('Failed to load company details: ' + error.message);
+        }
+    );
+}
+
