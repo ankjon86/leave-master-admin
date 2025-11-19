@@ -327,7 +327,8 @@ function openSetupModal(companyId) {
                 document.getElementById('companyUniqueId').value = uniqueId;
                 
                 // Auto-generate and display URL
-                const companyUrl = `https://leavemaster.com/company/${uniqueId}`;
+                // In openSetupModal function
+                const companyUrl = `https://leavemaster.online/app/${uniqueId}`;
                 document.getElementById('generatedUrl').textContent = companyUrl;
                 
                 document.getElementById('setupCompanyModal').classList.remove('hidden');
@@ -1401,6 +1402,7 @@ function resendSetupEmail(companyId) {
         }
     );
 }
+
 
 
 
