@@ -1269,12 +1269,9 @@ function displaySetupsList(setups) {
             <thead>
                 <tr>
                     <th>Company</th>
-                    <th>Admin</th>
                     <th>Unique ID</th>
                     <th>URL</th>
                     <th>Sheet ID</th>
-                    <th>Plan</th>
-                    <th>Status</th>
                     <th>Setup Date</th>
                     <th>Actions</th>
                 </tr>
@@ -1422,5 +1419,6 @@ function resendSetupEmail(companyId) {
         }
     );
 }
+
 
 
