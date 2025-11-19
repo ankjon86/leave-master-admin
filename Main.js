@@ -1206,13 +1206,14 @@ function createCompanySpreadsheet() {
                 showModalMessage('Company spreadsheet created successfully!', 'success');
                 log('✅ Company spreadsheet created: ' + result.spreadsheetUrl);
                 
-                // Update the UI with the new spreadsheet URL
-                if (result.spreadsheetUrl) {
-                    const generatedUrl = document.getElementById('generatedUrl');
-                    if (generatedUrl) {
-                        generatedUrl.textContent = result.spreadsheetUrl;
-                        generatedUrl.style.color = '#2ecc71';
-                        generatedUrl.style.fontWeight = 'bold';
+                // Update ONLY the Sheet ID field, NOT the Company URL field
+                if (result.spreadsheetId) {
+                    const generatedSheetId = document.getElementById('generatedSheetId');
+                    if (generatedSheetId) {
+                        // Display just the Sheet ID in the correct field
+                        generatedSheetId.textContent = result.spreadsheetId;
+                        generatedSheetId.style.color = '#2ecc71';
+                        generatedSheetId.style.fontWeight = 'bold';
                     }
                 }
             } else {
@@ -1421,4 +1422,5 @@ function resendSetupEmail(companyId) {
         }
     );
 }
+
 
