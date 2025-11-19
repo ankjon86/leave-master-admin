@@ -1168,7 +1168,7 @@ function updateGeneratedUrl() {
     }
 }
 
-function createCompanyFolder() {
+function createCompanySpreadsheet() {
     const companyId = document.getElementById('setupCompanyModal').getAttribute('data-company-id');
     const companyName = document.getElementById('setupCompanyName').textContent;
     
@@ -1177,38 +1177,47 @@ function createCompanyFolder() {
         return;
     }
     
-    log('Creating folder for company: ' + companyId);
+    log('Creating spreadsheet for company: ' + companyId);
     
     // Disable button and show loading
-    const createFolderBtn = document.getElementById('createFolderBtn');
-    const originalText = createFolderBtn.textContent;
-    createFolderBtn.textContent = 'Creating...';
-    createFolderBtn.disabled = true;
+    const createSpreadsheetBtn = document.getElementById('createSpreadsheetBtn');
+    const originalText = createSpreadsheetBtn.textContent;
+    createSpreadsheetBtn.textContent = 'Creating...';
+    createSpreadsheetBtn.disabled = true;
     
     callAdminApi(
         {
-            action: 'createCompanyFolder',
+            action: 'createCompanySpreadsheet',
             companyId: companyId,
             companyName: companyName
         },
         function(result) {
             // Restore button
-            createFolderBtn.textContent = originalText;
-            createFolderBtn.disabled = false;
+            createSpreadsheetBtn.textContent = originalText;
+            createSpreadsheetBtn.disabled = false;
             
             if (result && result.success) {
-                showModalMessage('Company folder created successfully!', 'success');
-                log('✅ Company folder created: ' + result.folderUrl);
+                showModalMessage('Company spreadsheet created successfully!', 'success');
+                log('✅ Company spreadsheet created: ' + result.spreadsheetUrl);
+                
+                // Update the UI with the new spreadsheet URL
+                if (result.spreadsheetUrl) {
+                    const generatedUrl = document.getElementById('generatedUrl');
+                    if (generatedUrl) {
+                        generatedUrl.textContent = result.spreadsheetUrl;
+                        generatedUrl.style.color = '#2ecc71';
+                        generatedUrl.style.fontWeight = 'bold';
+                    }
+                }
             } else {
-                showModalMessage('Failed to create folder: ' + (result.error || 'Unknown error'), 'error');
+                showModalMessage('Failed to create spreadsheet: ' + (result.error || 'Unknown error'), 'error');
             }
         },
         function(error) {
             // Restore button
-            createFolderBtn.textContent = originalText;
-            createFolderBtn.disabled = false;
-            showModalMessage('Failed to create folder: ' + error.message, 'error');
+            createSpreadsheetBtn.textContent = originalText;
+            createSpreadsheetBtn.disabled = false;
+            showModalMessage('Failed to create spreadsheet: ' + error.message, 'error');
         }
     );
 }
-
