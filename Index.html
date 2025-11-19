@@ -50,14 +50,15 @@
                 </div>
             </header>
             
-            <nav class="admin-tabs" role="tablist">
-                <button class="admin-tab active" onclick="openAdminTab('Dashboard', this)" role="tab" aria-selected="true">📈 Dashboard</button>
-                <button class="admin-tab" onclick="openAdminTab('Activities', this)" role="tab">📋 Activities</button>
-                <button class="admin-tab" onclick="openAdminTab('Companies', this)" role="tab">🏢 Companies</button>
-                <button class="admin-tab" onclick="openAdminTab('Subscriptions', this)" role="tab">💳 Subs</button>
-                <button class="admin-tab" onclick="openAdminTab('Billing', this)" role="tab">💰 Billing</button>
-                <button class="admin-tab" onclick="openAdminTab('System', this)" role="tab">⚙️ System</button>
-            </nav>
+<nav class="admin-tabs" role="tablist">
+    <button class="admin-tab active" onclick="openAdminTab('Dashboard', this)" role="tab" aria-selected="true">📈 Dashboard</button>
+    <button class="admin-tab" onclick="openAdminTab('Activities', this)" role="tab">📋 Activities</button>
+    <button class="admin-tab" onclick="openAdminTab('Companies', this)" role="tab">🏢 Companies</button>
+    <button class="admin-tab" onclick="openAdminTab('Setups', this)" role="tab">🚀 Setups</button>
+    <button class="admin-tab" onclick="openAdminTab('Subscriptions', this)" role="tab">💳 Subs</button>
+    <button class="admin-tab" onclick="openAdminTab('Billing', this)" role="tab">💰 Billing</button>
+    <button class="admin-tab" onclick="openAdminTab('System', this)" role="tab">⚙️ System</button>
+</nav>
 
             <main class="admin-content">
                 <div id="Dashboard" class="admin-tab-content active">
@@ -158,6 +159,46 @@
                         </div>
                     </div>
                 </div>
+
+        <div id="Setups" class="admin-tab-content">
+    <div class="tab-header">
+        <h2>Company Setups</h2>
+        <div class="header-actions">
+            <input type="text" id="setupsSearch" placeholder="Search..." class="search-input" aria-label="Search setups">
+            <button class="btn-refresh" type="button" onclick="loadSetupsData()" aria-label="Refresh setups">🔄</button>
+        </div>
+    </div>
+    
+    <div class="content-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-number" id="totalSetups">0</div>
+                <div class="stat-label">Total Setups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number" id="activeSetups">0</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📧</div>
+                <div class="stat-number" id="emailsSent">0</div>
+                <div class="stat-label">Emails Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-number" id="completedSetups">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+        
+        <h3>Setup Details</h3>
+        <div id="setupsList" class="table-container">
+            <div class="loading">Loading setup data...</div>
+        </div>
+    </div>
+</div>
 
 <div id="Billing" class="admin-tab-content">
     <div class="tab-header">
@@ -328,6 +369,7 @@
 </body>
 
 </html>
+
 
 
 
