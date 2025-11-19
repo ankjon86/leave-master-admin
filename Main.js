@@ -1280,21 +1280,12 @@ function displaySetupsList(setups) {
     `;
     
     setups.forEach(setup => {
-        const statusClass = getStatusClass(setup.status);
-        const planClass = getPlanClass(setup.subscriptionPlan);
-        
         html += `
             <tr>
                 <td>
                     <div class="company-info">
                         <div class="company-name">${escapeHtml(setup.companyName)}</div>
                         <div class="company-id">${escapeHtml(setup.companyId)}</div>
-                    </div>
-                </td>
-                <td>
-                    <div class="admin-info">
-                        <div class="admin-name">${escapeHtml(setup.adminName)}</div>
-                        <div class="admin-email">${escapeHtml(setup.adminEmail)}</div>
                     </div>
                 </td>
                 <td><code>${escapeHtml(setup.uniqueId)}</code></td>
@@ -1310,8 +1301,6 @@ function displaySetupsList(setups) {
                         `<span class="no-url">Not created</span>`
                     }
                 </td>
-                <td><span class="plan-badge ${planClass}">${escapeHtml(setup.subscriptionPlan)}</span></td>
-                <td><span class="status-badge ${statusClass}">${escapeHtml(setup.status)}</span></td>
                 <td>${escapeHtml(setup.setupDate)}</td>
                 <td>
                     <div class="action-buttons">
@@ -1419,6 +1408,7 @@ function resendSetupEmail(companyId) {
         }
     );
 }
+
 
 
 
